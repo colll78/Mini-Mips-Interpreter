@@ -1,0 +1,52 @@
+1. Instructions to run: 
+    cabal run MLabsInterpreter.cabal "fun.txt"
+
+2. 
+    cabal run MLabsInterpreter.cabal "loop_test.txt"
+    cabal run MLabsInterpreter.cabal "function_test.txt"
+
+3. 
+    A simple implementation would be to use MVar's from Control.Concurrent.MVar as our channels.
+For SEND_CHANNEL we could use putMVar since we don't mind a blocking send. Likewise for RECV_CHANNEL
+would use takeMVar. For SPAWN, we could handle it the same way I handle function calls, except we would 
+have two:
+            liftIO $ runExceptT (evalStateT (eval loop_insts)  Environment {..})
+instead of the single one that was used in handling call.
+
+Then the implementation would change depending on whether we the return values of the functions
+in the original program, or if we just want to output them. 
+
+To just output them we could do something like this
+
+        spawn :: [ByteCode] -> [ByteCode] -> StateT [Integer] (ExceptT String IO) ThreadId
+        spawn function1 function2 = do
+            s <- lift get
+            liftIO $ forkIO $ runExceptT (runStateT (eval function1) s >> return ())
+            liftIO $ forkIO $ runExceptT (runStateT (eval function2) s >> return ())
+
+Otherwise, we'd have to use Control.Concurrent.Async. If we wanted to get the results and push them onto our original program's stack, then we would
+have to use async with wait, or a higher level utility like concurrently. 
+
+
+Blockchain Questions (optional, only if you have previous blockchain experience)
+
+(4) explain some of the ways hashing functions enable blockchain technology
+Hashing functions are vital to blockchain technology. At the core of blockchain technology is the ability to validate transactions via signatures.
+How can we make sure that only Alice can spend her funds? Well, naively we can achieve this by requiring that everyone sign their transactions. Then 
+I could check if Alice's transaction was legitimate, by checking if it had her signature. But this presents an issue, since I have to know Alice's signature 
+to check if her transaction was legitimate, what's to stop me from signing a transaction from her address with her signature? Hashing functions make it 
+possible to check if a transaction with signed by a key, without actually having to know the key. We can quickly validate that a specific public key signed a transaction 
+but it is computationally infeasible to derive the private key from the public key. 
+
+(5) briefly explain Bitcoin's UTXO model of transaction validation (separate from POW)
+Bitcoin transactions contain inputs and ouputs. Each output is locked and cannot be spent unless signed by the owner of the private key corresponding to the output's address.
+The mechanism by which UTXOs are unlocked is referred to as redeemers. As far as I know, in Bitcoin, the redeemer is simply the private key. I have heard that
+Bitcoin has introduced some "smart" contract system by which UTXOs can include scripts which include additional validation criteria. 
+
+In Cardano's EUTXO model, transactions are validated by signature as-well, except the smart contract system is much more robust, and the validation criteria extends to
+Datum Redeemer ScriptContext. I am very familiar with Plutus, and confident in my ability to write advanced validation logic.  
+
+(6) what is the structure of a Block in bitcoin and how does it relate to the 'blockchain' (merkle tree vs merkle list of merkle trees)
+
+
+(7) what problem/s are POW/POS trying to solve? discuss/compare (byzantine fault tolerance, reaching a single consensus on a p2p network)
