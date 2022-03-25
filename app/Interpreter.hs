@@ -88,10 +88,6 @@ compareOp op = do
             LEQ -> (<=)
     return (cmpr val2 val1)
 
-somethingDo :: StateT Environment (ExceptT String IO) ()
-somethingDo =
-    return ()
-
 eval :: [ByteCode] -> StateT Environment (ExceptT String IO) Integer
 eval program = do
     let inst = head program
